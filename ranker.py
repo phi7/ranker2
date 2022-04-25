@@ -19,7 +19,7 @@ from timeout_decorator import timeout
 
 
 # .envファイルの内容を読み込見込む
-load_dotenv('.env') 
+load_dotenv('.env')
 
 CONSUMER_KEY = os.environ["CONSUMER_KEY"]
 CONSUMER_SECRET = os.environ["CONSUMER_SECRET"]
@@ -30,9 +30,9 @@ IMG_PATH = Path("./static/out_img.jpg")
 
 #設定
 #時間
-aimed_hour = 23
+aimed_hour = 22
 #分
-aimed_minute = 29
+aimed_minute = 20
 #賞金
 prize = str(1)
 
@@ -59,7 +59,7 @@ class Listener(tweepy.Stream):
 
     def on_status(self, status):
         #11分を過ぎたものがでてきたらフィニッシュ
-        if status.created_at.minute > 41:
+        if status.created_at.minute > aimed_minute + 11:
             sys.exit()
         try:
             record = [s for s in self.status_list if s.author.id == status.author.id][0]
@@ -71,7 +71,7 @@ class Listener(tweepy.Stream):
             elif record.created_at.minute != 29:
                 rank = "フライング"
             else:
-                rank_list = [s for s in self.status_list if s.created_at.minute == 29]
+                rank_list = [s for s in self.status_list if s.created_at.minute == aimed_minute]
                 rank = "{rank}位/{total}人".format(
                     rank=str(rank_list.index(record) + 1), total=len(rank_list)
                 )
@@ -105,25 +105,24 @@ class Ranker:
         auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
         self.api = tweepy.API(auth)
-        # self.api.update_status(status="hogehoge")
         #その他の設定
         self.screen_name = self.api.verify_credentials()._json["screen_name"]
         self.font_path = path.normpath(FONT_PATH)
         self.img_path = path.normpath(IMG_PATH)
-        self.img = Image.new('RGB', (880, 2048), (192, 192, 192))
+        self.img = Image.new('RGB', (880, 2048), (65,105,225))
         self.user_rank = 0
         #アジアで日にちをとっているから+ timedelta(days=1)いらない．日をまたぐ場合はいるのか
         # self.day = datetime.now(pytz.timezone("Asia/Tokyo")).date() + timedelta(days=1)
         self.day = datetime.now(pytz.timezone("Asia/Tokyo")).date() 
         # title = self.day.strftime("20%y年%m月%d日のランカー集計結果(@{screen_name})".format(screen_name=self.screen_name)).decode('UTF-8')
         title = self.day.strftime(
-            "20%y年%m月%d日のイ反社にカツ！集計結果(@{screen_name})".format(screen_name=self.screen_name)
+            "20%y.%m.%dのイ反社にカツ！集計結果(@{screen_name})".format(screen_name=self.screen_name)
         )
         self.draw_text((44, 17), 30, title)
 
     def draw_text(self, xy, size, text):
         font = ImageFont.truetype(self.font_path, size)
-        ImageDraw.Draw(self.img).text(xy, text, font=font, fill='#000')
+        ImageDraw.Draw(self.img).text(xy, text, font=font, fill='#fff')
 
     def draw_status(self, status, rank):
         self.draw_text((18, 55 + self.user_rank * 26), 20, rank)
@@ -137,21 +136,32 @@ class Ranker:
 
     def make_img(self):
         #現在時刻から１日前
+        #日本時間を撮っているのになぜか9時間の時差があるので修正する
+        #違った．.date()をつけていたため，時刻の切り捨てが生じていた
         since_date = (
-            datetime.now(pytz.timezone("Asia/Tokyo")) - timedelta(days=2)
+            datetime.now(pytz.timezone("Asia/Tokyo")) - timedelta(days=1)
         ).date()
-        # print(since_date)
+        # print(since_date.date)()
         # self.status_list = [s for s in self.api.list_timeline(u"siroiro_wst", u"しゃろほーの民", count=200) if s.text == u"しゃろほー"]
         self.status_list = [
             s
             for s in tweepy.Cursor(
                 self.api.search_tweets,
                 #現在時刻
-                q=f"イ反社にカツ！ since:{since_date} until:{since_date + timedelta(days=1)}",
+                #ここのuntilを２日後までいれているのは，たぶん１日後だと切り捨てになっている気がするから
+                q=f"イ反社にカツ！ since:{since_date} until:{since_date + timedelta(days=2)}",
             ).items(200)
             if s.text == "イ反社にカツ！"
         ]
         # print(self.status_list)
+        # print(since_date+timedelta(days=2))
+        # for s in tweepy.Cursor(
+        #         self.api.search_tweets,
+        #         #現在時刻
+        #         q=f"イ反社にカツ！ since:{since_date} until:{since_date + timedelta(days=1)}",
+        #     ).items(200):
+        #     print(s.user.screen_name)
+        #     print(s.created_at)
         #フォローしている人だけに限定
         self.status_list = [x for x in self.status_list if x.user.id in getFollowers_ids(self.api)]
         # print(self.status_list)
@@ -164,13 +174,15 @@ class Ranker:
             # print(status.created_at)
 
         self.status_list = sorted(self.status_list, key=lambda x: x.created_at)
+        # for status in self.status_list:
+        #     print(status.created_at)
         #0:00の人だけを集める
         rank_list = [
             s
             for s in self.status_list
             if s.created_at.minute == aimed_minute and s.created_at.hour == aimed_hour
         ]
-        # print(rank_list)
+        print(rank_list)
         #23:59の人だけを集める
         dq_list = [
             s
@@ -187,17 +199,16 @@ class Ranker:
         tmp = "https://twitter.com/ihansyanikatsu/status/"
         self.day = datetime.now(pytz.timezone("Asia/Tokyo")).date() 
         title = self.day.strftime(
-            "20%y年%m月%d日のイ反社にカツ！の優勝者"
+            "🔥20%y.%m.%dのイ反社にカツ！の優勝者🔥"
         )
-        comment = "おめでとう！賞金です！"
-        # @tipjpyc tip @xxxx（"投げ銭したい人のTwitter ID）1000（投げ銭する額）コメント
+        comment = "おめでとう🎉賞金です！"
         to_tipjpyc = "@tipjpyc tip "
         for winner in winner_list:
             # print(winner.user.name)
             if not winner.user.protected:
                 # self.api.retweet(winner.id)
-                self.api.update_status(status = to_tipjpyc +"@"+winner.user.screen_name + " "+ prize + " " + comment + "\n" + title + "\n" + tmp + str(winner.id))
-                # print(to_tipjpyc +"@"+winner.user.screen_name + " "+ prize + " " + title + "\n" + tmp + str(winner.id))
+                # self.api.update_status(status = title + "\n" + to_tipjpyc +"@"+winner.user.screen_name + " "+ prize + " " + comment + "\n" + tmp + str(winner.id))
+                print(to_tipjpyc +"@"+winner.user.screen_name + " "+ prize + " " + title + "\n" + tmp + str(winner.id))
                 # print(winner.user.screen_name)
         #描画処理を行う
         # print(len(dq_list))
@@ -206,12 +217,10 @@ class Ranker:
             for i in range(1, min(len(rank_list), 76)):
                 self.draw_status(rank_list[i], str(i))
         else:
-            # print("rankだよ1")
-            print(min(len(rank_list), 76))
+            # print(min(len(rank_list), 76))
             for i in range(1, min(len(rank_list), 76)):
                 print(i)
                 self.draw_status(rank_list[i - 1], str(i))
-                # print("rankだよ")
         #作った画像を切り取る
         box = (0, 0, 880, 59 + (self.user_rank + 3) * 26)
         self.img = self.img.crop(box)
@@ -238,17 +247,17 @@ def main():
     now = datetime.utcnow() + timedelta(hours=DIFF_JST_FROM_UTC)
     time_str = now.strftime('%Y/%m/%d %H:%M:%S')
     #観測開始をツイート
-    #bot.api.update_status("イ反社にカツ！を観測中"+time_str)
+    # bot.api.update_status("イ反社にカツ！を観測中"+time_str)
     #2分まつ
-    # sleep(120)
+    sleep(120)
     #ランキング画像を作成s
     bot.make_img()
     #画像をツイート
     now = datetime.utcnow() + timedelta(hours=DIFF_JST_FROM_UTC)
     time_str = now.strftime('%H:%M:%S')
-    bot.api.update_status_with_media(
-        filename=bot.img_path, status=bot.day.strftime("20%y年%m月%d日のイ反社にカツ！の集計結果"+time_str)
-    )
+    # bot.api.update_status_with_media(
+    #     filename=bot.img_path, status=bot.day.strftime("20%y.%m.%dのイ反社にカツ！の集計結果"+ "\n" +time_str)
+    # )
     IMG_PATH.unlink(missing_ok=True)
     try:
         # Listenerを起動してメンションを検知しているが
