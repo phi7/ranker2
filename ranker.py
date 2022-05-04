@@ -30,9 +30,9 @@ IMG_PATH = Path("./static/out_img.jpg")
 
 #設定
 #時間
-aimed_hour = 22
+aimed_hour = 12
 #分
-aimed_minute = 20
+aimed_minute = 35
 #賞金
 prize = str(1)
 
@@ -52,8 +52,8 @@ def getFollowers_ids(api):
 
 
 class Listener(tweepy.Stream):
-    def __init__(self, status_list, api):
-        tweepy.Stream.__init__(self)
+    def __init__(self,CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET, status_list, api):
+        super().__init__(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
         self.status_list = status_list
         self.api = api
 
@@ -68,7 +68,7 @@ class Listener(tweepy.Stream):
                 now = datetime.utcnow() + timedelta(hours=DIFF_JST_FROM_UTC)
                 time_str = now.strftime('%Y/%m/%d %H:%M:%S')
                 self.api.update_status(status="このBotをフォローすると使えます！"+"\n"+"#イ反社にカツ"+"\n"+time_str,in_reply_to_status_id=status.id)
-            elif record.created_at.minute != 29:
+            elif record.created_at.minute != aimed_minute:
                 rank = "フライング"
             else:
                 rank_list = [s for s in self.status_list if s.created_at.minute == aimed_minute]
@@ -232,15 +232,18 @@ class Ranker:
     #timeout処理．600秒経ったらタイムアウトする
     @timeout(60 * 10)
     def reply_to_mention(self):
-        listener = Listener(self.status_list, self.api)
-        stream = tweepy.Stream(self.api.auth, listener)
-        stream.filter(track=["@" + self.screen_name])
+        # listener = Listener(self.status_list, self.api)
+        # stream = tweepy.Stream(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET, listener)
+        # stream.filter(track=["@" + self.screen_name])
+        # stream = tweepy.Stream(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET)
+        listener = Listener(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET,self.status_list, self.api)
+        listener.filter(track=["@" + self.screen_name])
 
     @staticmethod
     def id_to_datetime(status_id):
         return datetime.fromtimestamp(((status_id >> 22) + 1288834974657) / 1000.0)
 
-def main():
+def main(event, context):
     #インスタンス作成
     bot = Ranker()
     DIFF_JST_FROM_UTC = 9
@@ -260,14 +263,17 @@ def main():
     # )
     IMG_PATH.unlink(missing_ok=True)
     try:
-        # Listenerを起動してメンションを検知しているが
+        # Listenerを起動してメンションを検知している
+        print("try実行")
         bot.reply_to_mention()
     except:
+        print("except実行")
         sys.exit()
+    # bot.reply_to_mention()
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 
 # ranker = Ranker()
