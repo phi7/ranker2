@@ -1,4 +1,4 @@
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 import os
 from io import BytesIO
@@ -16,17 +16,24 @@ from datetime import date, datetime, timedelta
 import tweepy
 from PIL import Image, ImageDraw, ImageFont
 from timeout_decorator import timeout
+import io,sys
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 
 # .envファイルの内容を読み込見込む
-load_dotenv('.env')
+# load_dotenv('.env')
 
-CONSUMER_KEY = os.environ["CONSUMER_KEY"]
-CONSUMER_SECRET = os.environ["CONSUMER_SECRET"]
-ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
-ACCESS_TOKEN_SECRET = os.environ["ACCESS_TOKEN_SECRET"]
+# CONSUMER_KEY = os.environ["CONSUMER_KEY"]
+# CONSUMER_SECRET = os.environ["CONSUMER_SECRET"]
+# ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
+# ACCESS_TOKEN_SECRET = os.environ["ACCESS_TOKEN_SECRET"]
+CONSUMER_KEY = os.environ.get("CONSUMER_KEY")
+CONSUMER_SECRET = os.environ.get("CONSUMER_SECRET")
+ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
+ACCESS_TOKEN_SECRET = os.environ.get("ACCESS_TOKEN_SECRET")
 FONT_PATH = Path("./static/RictyDiminished-Regular.ttf")
-IMG_PATH = Path("./static/out_img.jpg")
+# font = ImageFont.load_default()
+IMG_PATH = Path("/tmp/out_img.jpg")
 
 #設定
 #時間
@@ -243,7 +250,7 @@ class Ranker:
     def id_to_datetime(status_id):
         return datetime.fromtimestamp(((status_id >> 22) + 1288834974657) / 1000.0)
 
-def main(event, context):
+def main(data, context):
     #インスタンス作成
     bot = Ranker()
     DIFF_JST_FROM_UTC = 9
@@ -251,16 +258,17 @@ def main(event, context):
     time_str = now.strftime('%Y/%m/%d %H:%M:%S')
     #観測開始をツイート
     # bot.api.update_status("イ反社にカツ！を観測中"+time_str)
+    bot.api.update_status("テスト中です〜"+time_str)
     #2分まつ
-    sleep(120)
+    # sleep(120)
     #ランキング画像を作成s
     bot.make_img()
     #画像をツイート
     now = datetime.utcnow() + timedelta(hours=DIFF_JST_FROM_UTC)
     time_str = now.strftime('%H:%M:%S')
-    # bot.api.update_status_with_media(
-    #     filename=bot.img_path, status=bot.day.strftime("20%y.%m.%dのイ反社にカツ！の集計結果"+ "\n" +time_str)
-    # )
+    bot.api.update_status_with_media(
+        filename=bot.img_path, status=bot.day.strftime("20%y.%m.%dのイ反社にカツ！の集計結果"+ "\n" +time_str)
+    )
     IMG_PATH.unlink(missing_ok=True)
     try:
         # Listenerを起動してメンションを検知している

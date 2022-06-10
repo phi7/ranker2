@@ -1,0 +1,6 @@
+Pillow==9.1.0
+pytz==2022.1
+requests==2.27.1
+timeout-decorator==0.5.0
+tweepy==4.6.0
+
