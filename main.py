@@ -237,7 +237,7 @@ class Ranker:
 
 
     #timeout処理．600秒経ったらタイムアウトする
-    @timeout(60 * 10)
+    @timeout(60 * 10, use_signals=False)
     def reply_to_mention(self):
         # listener = Listener(self.status_list, self.api)
         # stream = tweepy.Stream(CONSUMER_KEY,CONSUMER_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET, listener)

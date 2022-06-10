@@ -1,2 +1,3 @@
 # .envファイルをgitの管理対象から外す
+.env.yaml
 .env
